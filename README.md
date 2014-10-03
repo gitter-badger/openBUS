@@ -1,4 +1,4 @@
 openBUS
 =======
 
-App per la mobilità intelligente 
+App per la mobilità intelligente.
