@@ -11,17 +11,27 @@ var posDevice = {
 
 var posCenter;
 var map;
+var bus_stations;
 
-$( document ).on( "pagecreate", "#map-page", function() {
+$( document ).on( "pagecreate", "#openbus-index", function() {
     
     // OpenData REST
     openbusREST.initialize(_initOpenData);
     function _initOpenData() {
         console.log(' Init Open Data');
-        $('#nameApp').html(openbusConfig.app + ' ' + openbusConfig.city + ', ' + openbusConfig.country)
+        $('#nameApp').html(' <a href="#" data-lat="' + openbusConfig.lat + '" data-lng="' + openbusConfig.lng + '" >' +
+                           openbusConfig.app + '</a>');
     };
 
-    initialize_map();
+    $('#nameApp').on('click', 'a', function () {
+        var lat = $(this).data('lat');
+        var lng = $(this).data('lng');
+        setCenter(convertToLatLng(lat, lng));
+    });
+
+    // initialize_map();
+
+    MQA.EventUtil.observe(window, 'load', initialize_map);
 
     function initialize_map () {
         
@@ -38,6 +48,15 @@ $( document ).on( "pagecreate", "#map-page", function() {
            bestFitMargin: 0,                              // margin offset from map viewport when applying a bestfit on shapes
            zoomOnDoubleClick: true                        // enable map to be zoomed in when double-clicking on map
          };
+
+         setMapSize();
+        
+         window.onresize = function(event) {
+            setMapSize();
+            var resizeMap = new MQA.Size(document.getElementById(openbusConfig.mapElement).style.width,
+                                         document.getElementById(openbusConfig.mapElement).style.height);
+            window.map.setSize(resizeMap);
+         }
      
          // construct an instance of MQA.TileMap with the options object
          map = new MQA.TileMap(options);
@@ -83,12 +102,24 @@ $( document ).on( "pagecreate", "#map-page", function() {
 
     };
 
+    function setMapSize(){
+        if (MQA.browser.name == "msie"){
+            document.getElementById(openbusConfig.mapElement).style.width = document.body.offsetWidth - 20;
+            document.getElementById(openbusConfig.mapElement).style.height = document.body.offsetHeight - 20;
+        } else {
+            document.getElementById(openbusConfig.mapElement).style.width = window.innerWidth;
+            document.getElementById(openbusConfig.mapElement).style.height = window.innerHeight;
+        }
+    };
+
     function convertToLatLng(latP, lngP) {
         var pos = { lat: latP, lng: lngP };
         return pos;
     }
 
     function _success_geolocation(position) {
+
+        console.log('success geolocation');
         posDevice = {
             location: {
                 latitude: position.coords.latitude,
@@ -98,7 +129,7 @@ $( document ).on( "pagecreate", "#map-page", function() {
         var pos = convertToLatLng(position.coords.latitude, position.coords.longitude); 
         reverseGeocode(pos);
         setCenter(pos);
-        refresh(pos);
+        openbusREST.getFermate(_getFermate); 
      };
 
     function _error_geolocation() {
@@ -113,11 +144,12 @@ $( document ).on( "pagecreate", "#map-page", function() {
 
         var pos = convertToLatLng(openbusConfig.lat, openbusConfig.lng);
         setCenter(pos);
-        refresh(pos);
+        openbusREST.getFermate(_getFermate); 
     };
 
     function setCenter (pos) {
         console.log('set center at ' + JSON.stringify(pos));
+        posCenter = pos;
         map.setCenter(pos);
         map.setZoomLevel(openbusConfig.zoom);
     };
@@ -142,20 +174,12 @@ $( document ).on( "pagecreate", "#map-page", function() {
 
     };
 
-    function refresh(pos) {
-        posCenter = pos;
-        openbusREST.getFermate(_getFermate);  
-    };
+    function _map() {
     
-    function _map(evt) {
-        console.log('_map ' + evt.eventname);
-        posCenter = map.getCenter();
-        refresh(posCenter);
     };
 
-    function _addBusStation(item) {
-        console.log(' added bus stations ' + JSON.stringify(item));
-        add_busstation(item);
+    function _addBusStation() {
+        console.log(' added bus stations ');
     }
 
     function _getFermate(response) {
@@ -165,13 +189,21 @@ $( document ).on( "pagecreate", "#map-page", function() {
         // leggo tutte le fermate entro la distanza di default
         if (typeof response !== 'undefined') {
             $('#busstation_container').empty();
-            var tt = sortByDistance(response);
-            addBusStations(tt, openbusConfig.stations, _addBusStation);            
-
+            bus_stations = sortByDistance(response);
+            addBusStations(bus_stations, openbusConfig.stations, _addBusStation); 
         } else {
             console.log('Error to read bus stations');
         }
 
+    };
+
+    function click_poi(name, address, lat, lng) {
+        console.log(name + ' ' + lat + ', ' + lng);
+        $('#busstation_container').empty();
+        add_busstation(name, address, lat, lng);
+        var p = convertToLatLng(lat, lng);
+        setCenter(p);
+        window.location.href = '#header_container';
     };
     
     // visualizza l'errore 
@@ -180,50 +212,73 @@ $( document ).on( "pagecreate", "#map-page", function() {
         $('#error_msg').html(html_code);
     };
 
-    function click_timetable(element) {
-        var station = element.data('station');
-        var address = element.data('address');
-        var lat_b = element.data('lat');
-        var lng_b = element.data('lng');
-        var action = element.data('action');
+    function _getFermateLinee(dir, busstop, descrizione) {
 
-        if (action === 'routing') {
+        var html_code = '', img_dir;
 
-            // openbus.calcRoute(g_lat, g_lng, lat_b, lng_b, address, _calcRoute);
-            var end = convertToLatLng(lat_b, lng_b);
+        if (dir === 'Andata') {
+            img_dir = '<img src="img/andata.png" />';
+        } else if (dir === 'Ritorno') {
+            img_dir = '<img src="img/ritorno.png" />';
+        }
 
-            console.log('calculating route start from ' + JSON.stringify(posCenter) + ' to ' + JSON.stringify(end));
-            routingExtended(posCenter, end);
-        } else if (action === 'next') {
-            var idlinea = $(this).data('linea');
+        html_code = '<li>' +  descrizione + ' ' + img_dir + '</li>'; 
 
-            var idlinea_new = idlinea.replace('/', 'barrato');
-
-            alert('Linea : ' + idlinea_new);
-        }   
-    }
+        $('#next_stop_list').append(html_code);
+    };
 
     // calcola la distanza ed il percorso dal punto del dispositivo
     $('#busstation_container').on('click', 'a', function () {
-        click_timetable($(this));
+        var station = $(this).data('station');
+        var address = $(this).data('address');
+        var lat_b = $(this).data('lat');
+        var lng_b = $(this).data('lng');
+        var action = $(this).data('action');
+
+        if (action === 'routing') {
+            var start = convertToLatLng(posDevice.location.latitude, posDevice.location.longitude);
+            var end = convertToLatLng(lat_b, lng_b);
+            console.log('calculating route start from ' + JSON.stringify(start) + ' to ' + JSON.stringify(end));
+            routingExtended(start, end);
+        } else if (action === 'next') {
+            var idlinea = $(this).data('linea');
+            if (typeof idlinea !== 'undefined') {
+                var l = '';
+                if (idlinea.lastIndexOf('/') == -1) {
+                    l = idlinea;
+                } else {
+                    l = idlinea.replace('/', 'barrato');
+                }
+                $('#next_stop_list_name').html('Linea ' + l + ' , prossime fermate da ' + address);
+                openbusREST.getFermateLinea(l, address, _getFermateLinee);
+            }
+        } 
     });
 
-    function add_busstation(item) {
+    function add_busstation(name, address, lat, lng) {
 
         // tabella degli orari
-        var idTimeT = item.IdFermata + SUFF_TIME + '_t';
-        var idTimeR = item.IdFermata + SUFF_TIME + '_r';
+        var idTimeT = name + SUFF_TIME + '_t';
+        var idTimeR = name + SUFF_TIME + '_r';
 
-        var distance = getDistance(posCenter.lat, 
-                                   posCenter.lng, 
-                                   item.PosizioneFermata.Latitudine, 
-                                   item.PosizioneFermata.Longitudine);
+        var distance = getDistance(posDevice.location.latitude, 
+                                   posDevice.location.longitude, 
+                                   lat, 
+                                   lng);
+
+        var dist = '';
+
+        if (distance > 2000) {
+            dist = Math.ceil(distance/1000) + ' Km'
+        } else {
+            dist = distance + ' mt'
+        }
 
         var html_code = '<div class="ui-grid-a">' + 
                         '   <div class="ui-block-a">' + 
                         '       <img src="img/time.png" width="16px" height="16px" /> Orari' +
                         '       <div class="ui-bar ui-bar-a" style="height:60px">' + 
-                                    item.DescrizioneFermata + 
+                                    address + 
                         '       </div>' +
                         '       <ul data-role="listview" data-shadow="false" data-inset="true" data-corners="false" ' + 
                         '           id="' + idTimeT + '"></ul>' +
@@ -231,12 +286,12 @@ $( document ).on( "pagecreate", "#map-page", function() {
                         '   <div class="ui-block-b">' +
                         '       <img src="img/bus.png" width="16px" height="16px" /> Bus in arrivo' +
                         '       <div class="ui-bar ui-bar-a" style="height:60px">' + 
-                        '           <a href="#popupInfo" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-location ui-btn-icon-left ui-btn-b" ' +
-                        '               data-station="' + item.IdFermata + '" ' +
+                        '           <a href="#panel-route" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-location ui-btn-icon-left ui-btn-b" ' +
+                        '               data-station="' + name + '" ' +
                         '               data-action="routing"' +
-                        '               data-address="' + item.DescrizioneFermata + '" ' +
-                        '               data-lat="' + item.PosizioneFermata.Latitudine + '" ' +
-                        '               data-lng="' + item.PosizioneFermata.Longitudine + '">' + distance + ' mt </a>' +
+                        '               data-address="' + address + '" ' +
+                        '               data-lat="' + lat + '" ' +
+                        '               data-lng="' + lng + '">' + dist + '</a>' +
                         '       </div>' +
                         '   <ul data-role="listview" data-shadow="false" data-inset="true" data-corners="false" ' + 
                         '   id="' + idTimeR + '"></ul>' +
@@ -245,8 +300,8 @@ $( document ).on( "pagecreate", "#map-page", function() {
 
         $('#busstation_container').append(html_code);
 
-        openbusREST.getOrarioPalinaTeorico(item.IdFermata, _oraripalina_teorico);
-        openbusREST.getOrarioPalinaRealtime(item.IdFermata, _oraripalina_realtime);
+        openbusREST.getOrarioPalinaTeorico(name, _oraripalina_teorico);
+        openbusREST.getOrarioPalinaRealtime(name, _oraripalina_realtime);
         
     };
 
@@ -324,18 +379,10 @@ $( document ).on( "pagecreate", "#map-page", function() {
         addTimeTable(response, station, idElement);
     };
 
-    // cerca un indirizzo
-    $( "#search-btn" ).click(function(  ) {
-        var address = $( "#search-address" ).val();
-        if (address !== '') {
-            geocode(address);
-        }   
-    });
-
     $( "#search-address" ).keypress(function( event ) {
-          if ( event.which == 13 && $( "#search-address" ).val() != '') {
-            geocode($( "#search-address" ).val());  
-          }
+      if ( event.which == 13 && $( "#search-address" ).val() != '') {
+        geocode($( "#search-address" ).val());  
+      }
     });
 
     function addMarker (lat, lng, image, title, content, key) {
@@ -388,7 +435,7 @@ $( document ).on( "pagecreate", "#map-page", function() {
         console.log('*** start add collection bus ***');
         var c = new MQA.ShapeCollection();
         c.collectionName = busstation;
-        c.minZoomLevel = 7;
+        c.minZoomLevel = openbusConfig.zoom;
 
         console.log(' bus to addedd ' + collection.length + ' data : ' + JSON.stringify(collection));
 
@@ -404,7 +451,7 @@ $( document ).on( "pagecreate", "#map-page", function() {
             poi.addExtraField('linea', collection[i].IdLinea);
             poi.setRolloverContent(collection[i].IdLinea);
             poi.setInfoContentHTML(collection[i].IdCorsa + ' - ' +  getDateFormatEU(collection[i].OrarioArrivo));
-            poi.setIcon(new MQA.Icon('http://obb.gzileni.name/img/bus.png'), 32, 25);
+            poi.setIcon(new MQA.Icon('http://open.mapquestapi.com/staticmap/geticon?uri=poi-green_1.png',20,29));
             c.add(poi);
 
             if (typeof callback === 'function') {
@@ -422,17 +469,16 @@ $( document ).on( "pagecreate", "#map-page", function() {
 
     function addBusStations (collection, limit, callback) {
 
+        var i=0;
         console.log('*** start add collection bus station ***');
         var c = new MQA.ShapeCollection();
         c.collectionName = 'bus_station';
-        c.minZoomLevel = 7;
+        c.minZoomLevel = openbusConfig.zoom;
 
         console.log('*** start add collection bus station ***');
 
-        for (var i=0; i < limit; i++) {
-
-            console.log(i + ') ' + collection[i].IdFermata)
-
+        while (collection[i]) {    
+            
             var point = { 
                 lat: collection[i].PosizioneFermata.Latitudine, 
                 lng: collection[i].PosizioneFermata.Longitudine 
@@ -441,19 +487,32 @@ $( document ).on( "pagecreate", "#map-page", function() {
             var poi = new MQA.Poi(point);
             poi.addExtraField('name', collection[i].IdFermata);
             poi.addExtraField('address', collection[i].DescrizioneFermata);
+            poi.addExtraField('lat', collection[i].PosizioneFermata.Latitudine);
+            poi.addExtraField('lng', collection[i].PosizioneFermata.Longitudine);
             poi.setRolloverContent(collection[i].IdFermata);
             poi.setInfoContentHTML(collection[i].DescrizioneFermata);
-            poi.setIcon(new MQA.Icon('http://obb.gzileni.name/img/flag.png'), 21, 26);
+            poi.setIcon(new MQA.Icon('http://open.mapquestapi.com/staticmap/geticon?uri=poi-red_1.png'), 20, 29);
+
+            MQA.EventManager.addListener(poi, 'click', function (evt) {
+                // var pos = this.latLng();
+                var name = this.getExtraField('name');
+                var address = this.getExtraField('address');
+                var lat = this.getExtraField('lat');
+                var lng = this.getExtraField('lng');
+                click_poi(name, address, lat, lng);    
+            });
+
             c.add(poi);
 
-            if (typeof callback === 'function') {
-                callback(collection[i]);
-            }
-
+            i++;
         };
 
         map.addShapeCollection(c);
-        // map.bestFit();
+        //map.bestFit();
+
+        if (typeof callback === 'function') {
+            callback();
+        }
 
     };
 
@@ -468,7 +527,7 @@ $( document ).on( "pagecreate", "#map-page", function() {
                     console.log('item founded --> ' + JSON.stringify(item.locations[0].adminArea5));
                     if (item.locations[0].adminArea5 == openbusConfig.city) {
                         setCenter(item.locations[0].latLng);
-                        refresh(item.locations[0].latLng);
+                        window.location.href='#';
                     }
                 });
             }

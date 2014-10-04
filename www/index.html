@@ -37,76 +37,60 @@
         <title>OpenBUS</title>
     </head>
     <body>
-        <div data-role="page" id="map-page" data-url="map-page">
-            
-            <div data-role="header" data-theme="a">
-                <h1 id="nameApp"></h1>
-                <!--
-                    <a href="#login" data-icon="user" class="ui-btn-right">LogIn</a>
-                
-                <div data-role="navbar">
-                    
-                    <ul>
-                        <li><a href="#bus_stations">Bus Stations</a></li>
-                        <li><a href="#go_to">Go to</a></li>
-                    </ul>
-                    
-                </div>
-                -->
+
+    <div data-role="page" 
+         class="jqm-demos ui-responsive-panel" 
+         id="openbus-index" 
+         data-title="openBUS" 
+         data-url="panel-responsive-page1">
+        <div data-role="header" id="header_container">
+            <h1 id="nameApp"></h1>
+            <a href="#panel-search" data-icon="search" data-iconpos="notext">Search</a>
+            <div id="busstation_container"></div>
+            <div id="error_msg"></div>
+            <div id="info_msg"></div>
+        </div>
+        <div role="main" class="ui-content jqm-content jqm-fullwidth" id="map-canvas"></div>
+        
+        <div data-role="panel" id="panel-next" data-display="overlay" data-position="right">
+            <div>
+                <h4 id="next_stop_list_name"></h4>
+                <ul data-role="listview" id="next_stop_list"></ul>
             </div>
-
-            <div role="main" class="ui-content">
-                
-                <div class="rwd-example">
-                    
-                    <div class="ui-block-a" id="map-canvas">
-                        
-                    </div>
-                    
-                    <div class="ui-block-b">
-                        <div id="search-container">
-                            <input type="search" name="search-address" id="search-address" value="">
-                        </div>
-                        <div id="error_msg"></div>
-                        <div id="info_msg"></div>
-                        <div id="busstation_container"></div>
-                        <div id="route_container"></div>
-                    </div>
-                
-                </div>
-
-                <div data-role="panel" id="panel-next" data-display="overlay" data-position="right">
-                    <div id="next_stop_list"></div>
-                    <hr />
-                    <a href="#" class="ui-btn" data-rel="close">Close</a>
-                </div><!-- /panel -->
-
-            </div>
-
-            <!--
-            <div data-role="footer">
-                <div class="segmented-control ui-bar-d">
-                    
-                </div>
-            </div>
-            -->
+            <hr />
+            <a href="#" class="ui-btn" data-rel="close">Close</a>
         </div>
 
-        <script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
-        <script type="text/javascript" src="js/jquery.mobile-1.4.3.js"></script>
-        <script src="http://www.mapquestapi.com/sdk/js/v7.2.s/mqa.toolkit.js?key=Fmjtd%7Cluur2ha7n9%2Cb5%3Do5-9wb0q0">
-        </script>
-        <script type="text/javascript" src="js/apigee.js"></script>
-        <script type="text/javascript" src="js/openbus.config.js"></script>
-        <script type="text/javascript" src="js/openbus.mobile.js"></script>
-        <script type="text/javascript" src="js/openbus.rest.js"></script>
-        <script type="text/javascript" src="js/moment.js"></script>
-        <script type="text/javascript" src="js/moment-timezone-with-data.js"></script>
-        <script type="text/javascript" src="js/underscore-min.js"></script>
-        <script type="text/javascript" src="cordova.js"></script>
-        <script type="text/javascript" src="js/index.js"></script>
-        <script type="text/javascript">
-            app.initialize();
-        </script>
+        <div data-role="panel" id="panel-route" data-display="overlay" data-position="right">
+            <div id="route_container"></div>
+        </div>
+
+        <div data-role="panel" id="panel-search" data-display="overlay" data-position="right">
+            <p>Inserisci l'indirizzo</p>
+            <input type="search" name="search-address" id="search-address" value="">   
+            <div id="error_msg"></div>
+            <div id="info_msg"></div>
+            <hr />
+            <a href="#" class="ui-btn" data-rel="close">Close</a>
+        </div>
+
+    </div>
+    
+    <script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="js/jquery.mobile-1.4.3.js"></script>
+    <script src="http://www.mapquestapi.com/sdk/js/v7.2.s/mqa.toolkit.js?key=Fmjtd%7Cluur2ha7n9%2Cb5%3Do5-9wb0q0">
+    </script>
+    <script type="text/javascript" src="js/apigee.js"></script>
+    <script type="text/javascript" src="js/openbus.config.js"></script>
+    <script type="text/javascript" src="js/openbus.mobile.js"></script>
+    <script type="text/javascript" src="js/openbus.rest.js"></script>
+    <script type="text/javascript" src="js/moment.js"></script>
+    <script type="text/javascript" src="js/moment-timezone-with-data.js"></script>
+    <script type="text/javascript" src="js/underscore-min.js"></script>
+    <script type="text/javascript" src="cordova.js"></script>
+    <script type="text/javascript" src="js/index.js"></script>
+    <script type="text/javascript">
+        app.initialize();
+    </script>
     </body>
 </html>

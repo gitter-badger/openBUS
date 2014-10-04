@@ -10,10 +10,54 @@ var openbusREST = {
       	}
 	},
 
+  getFermateLinea: function (linea, laststop, callback) {
+    
+    var islast= false, f;
+    var url = URL_OPENDATA + 'rete/FermateLinea/' + linea;
+
+    console.log();
+
+    this.getFermate(_getF);
+
+    function _getF(fermate) {
+      // leggo le fermate della linea
+      f = fermate;
+      openbusREST.makeJSONrequest(url, _getFLinea);
+    };
+
+    function _getFLinea(fermatelinea) {
+      var i=0;
+      while (fermatelinea[i]) {
+        if (!islast) islast = fermatelinea[i].IdFermata == laststop;
+        if (islast) {
+          var dir = fermatelinea[i].Direzione;
+          var busstop = fermatelinea[i].IdFermata;
+          var descrizione = getDescrizioneFermata(f, busstop);
+
+          if (typeof callback === 'function') {
+            callback(dir, busstop, descrizione); 
+          }
+        }
+        i++; 
+      }
+    };
+
+    function getDescrizioneFermata (collection, idfermata) {
+      var i;
+      while (collection[i]) {
+        if (collection[i].IdFermata == idfermata) {
+          return collection[i].getDescrizioneFermata;
+          break;
+        }
+        i++;
+      }
+    }
+  },
+
   getOrarioPalinaTeorico: function (station, callback) {
     var url = URL_OPENDATA + 'OrariPalina/' + station + '/teorico/';
 
-    openbusREST.makeJSONrequest(url, _getOrarioPalina);
+    this.makeJSONrequest(url, _getOrarioPalina);
 
     function _getOrarioPalina(result) {
       if (typeof callback === 'function') {
