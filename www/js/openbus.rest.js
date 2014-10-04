@@ -10,47 +10,59 @@ var openbusREST = {
       	}
 	},
 
-  getFermateLinea: function (linea, laststop, callback) {
+  getFermateLinea: function (fermate, linea, laststop, callback) {
     
-    var islast= false, f;
+    var islast= false;
     var url = URL_OPENDATA + 'rete/FermateLinea/' + linea;
 
-    console.log();
+    console.log('*** getFermateLinee start ***');
 
+    openbusREST.makeJSONrequest(url, _getFLinea);
+
+    /*
     this.getFermate(_getF);
 
     function _getF(fermate) {
       // leggo le fermate della linea
       f = fermate;
-      openbusREST.makeJSONrequest(url, _getFLinea);
+      
     };
+
+    */
 
     function _getFLinea(fermatelinea) {
       var i=0;
       while (fermatelinea[i]) {
+        console.log(' Fermata ' + fermatelinea[i].IdFermata + ' vs ' + laststop);
         if (!islast) islast = fermatelinea[i].IdFermata == laststop;
         if (islast) {
+          console.log('stata raggiunta');
           var dir = fermatelinea[i].Direzione;
           var busstop = fermatelinea[i].IdFermata;
-          var descrizione = getDescrizioneFermata(f, busstop);
+          var descrizione = getDescrizioneFermata(fermate, busstop);
 
           if (typeof callback === 'function') {
             callback(dir, busstop, descrizione); 
           }
-        }
+        } else {
+          console.log('non è stata raggiunta la stazione ');
+        };
         i++; 
       }
     };
 
     function getDescrizioneFermata (collection, idfermata) {
-      var i;
+      var i, ret='';
       while (collection[i]) {
-        if (collection[i].IdFermata == idfermata) {
-          return collection[i].getDescrizioneFermata;
+        console.log(collection[i].IdFermata + ' vs ' + idfermata);
+        if (collection[i].IdFermata.toString() === idfermata) {
+          ret = collection[i].DescrizioneFermata;
           break;
         }
         i++;
       }
+
+      return ret;
     }
   },
 

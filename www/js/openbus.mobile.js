@@ -203,7 +203,7 @@ $( document ).on( "pagecreate", "#openbus-index", function() {
         add_busstation(name, address, lat, lng);
         var p = convertToLatLng(lat, lng);
         setCenter(p);
-        window.location.href = '#header_container';
+        window.location.href = '#';
     };
     
     // visualizza l'errore 
@@ -222,7 +222,7 @@ $( document ).on( "pagecreate", "#openbus-index", function() {
             img_dir = '<img src="img/ritorno.png" />';
         }
 
-        html_code = '<li>' +  descrizione + ' ' + img_dir + '</li>'; 
+        html_code = '<li>' +  busstop + ' ' + img_dir + '</li>'; 
 
         $('#next_stop_list').append(html_code);
     };
@@ -234,6 +234,7 @@ $( document ).on( "pagecreate", "#openbus-index", function() {
         var lat_b = $(this).data('lat');
         var lng_b = $(this).data('lng');
         var action = $(this).data('action');
+        var idlinea = $(this).data('linea');
 
         if (action === 'routing') {
             var start = convertToLatLng(posDevice.location.latitude, posDevice.location.longitude);
@@ -241,16 +242,18 @@ $( document ).on( "pagecreate", "#openbus-index", function() {
             console.log('calculating route start from ' + JSON.stringify(start) + ' to ' + JSON.stringify(end));
             routingExtended(start, end);
         } else if (action === 'next') {
-            var idlinea = $(this).data('linea');
+            
             if (typeof idlinea !== 'undefined') {
                 var l = '';
-                if (idlinea.lastIndexOf('/') == -1) {
+                if (idlinea.toString().indexOf('/') == -1) {
                     l = idlinea;
                 } else {
-                    l = idlinea.replace('/', 'barrato');
+                    l = idlinea.toString().replace('/', 'barrato');    
                 }
+                
+                console.log('Linea ' + idlinea + ' - Linea new ' + l);
                 $('#next_stop_list_name').html('Linea ' + l + ' , prossime fermate da ' + address);
-                openbusREST.getFermateLinea(l, address, _getFermateLinee);
+                openbusREST.getFermateLinea(bus_stations, l, station, _getFermateLinee);
             }
         } 
     });
@@ -288,6 +291,7 @@ $( document ).on( "pagecreate", "#openbus-index", function() {
                         '       <div class="ui-bar ui-bar-a" style="height:60px">' + 
                         '           <a href="#panel-route" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-icon-location ui-btn-icon-left ui-btn-b" ' +
                         '               data-station="' + name + '" ' +
+                        '               data-linea="0"' +
                         '               data-action="routing"' +
                         '               data-address="' + address + '" ' +
                         '               data-lat="' + lat + '" ' +
@@ -362,7 +366,9 @@ $( document ).on( "pagecreate", "#openbus-index", function() {
                          '<th><b>' + lineBus.IdLinea + '</b></th>' +
                          '<td>' + lineBus.IdCorsa + '</td>' +
                          '<td>' + getDateFormatEU(lineBus.OrarioArrivo) + '</td>' +
-                         '<td><a href="#panel-next" data-action="next" data-linea="' + lineBus.IdLinea + '"><img src="img/next.png" /></a></td>' +
+                         '<td><a href="#panel-next" data-action="next" ' +
+                         '                          data-station="' + station + '" ' +
+                         '                          data-linea="' + lineBus.IdLinea + '"><img src="img/next.png" /></a></td>' +
                          '</tr>';
         
             console.log('add bus --> ' + lineBus.IdLinea + ' (' + lineBus.IdCorsa + ') , element: ' + idElement);
